@@ -63,8 +63,7 @@ int main(int argc, char **argv) {
 		printf("\x1b[1;1HNo WiFi! Is your wireless slider on?");
 	}
 
-
-	//Initialize console on top screen. Using NULL as the second argument tells the console library to use the internal console structure as current one
+	
 	consoleInit(GFX_TOP, NULL);
 
 	int recvlen;
