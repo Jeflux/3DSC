@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.btnExit = new System.Windows.Forms.Button();
             this.broadcastTimer = new System.Windows.Forms.Timer(this.components);
             this.ckMinimizeToTray = new System.Windows.Forms.CheckBox();
@@ -36,6 +37,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.btnBroadcast = new System.Windows.Forms.Button();
             this.btnStopBroadcast = new System.Windows.Forms.Button();
+            this.notifMinimize = new System.Windows.Forms.NotifyIcon(this.components);
             this.SuspendLayout();
             // 
             // btnExit
@@ -64,10 +66,11 @@
             // 
             // cbboxIP
             // 
+            this.cbboxIP.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbboxIP.FormattingEnabled = true;
-            this.cbboxIP.Location = new System.Drawing.Point(78, 12);
+            this.cbboxIP.Location = new System.Drawing.Point(75, 13);
             this.cbboxIP.Name = "cbboxIP";
-            this.cbboxIP.Size = new System.Drawing.Size(186, 21);
+            this.cbboxIP.Size = new System.Drawing.Size(189, 21);
             this.cbboxIP.TabIndex = 2;
             // 
             // label1
@@ -75,9 +78,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(9, 16);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(63, 13);
+            this.label1.Size = new System.Drawing.Size(60, 13);
             this.label1.TabIndex = 3;
-            this.label1.Text = "Network IP:";
+            this.label1.Text = "IP address:";
             // 
             // btnBroadcast
             // 
@@ -99,6 +102,13 @@
             this.btnStopBroadcast.UseVisualStyleBackColor = true;
             this.btnStopBroadcast.Click += new System.EventHandler(this.btnStopBroadcast_Click);
             // 
+            // notifMinimize
+            // 
+            this.notifMinimize.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.notifMinimize.Icon = ((System.Drawing.Icon)(resources.GetObject("notifMinimize.Icon")));
+            this.notifMinimize.Text = "notifyIcon1";
+            this.notifMinimize.DoubleClick += new System.EventHandler(this.notifMinimize_DoubleClick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -115,6 +125,7 @@
             this.Name = "Form1";
             this.Text = "3DSC";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Resize += new System.EventHandler(this.Form1_Resize);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -129,6 +140,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnBroadcast;
         private System.Windows.Forms.Button btnStopBroadcast;
+        private System.Windows.Forms.NotifyIcon notifMinimize;
     }
 }
 

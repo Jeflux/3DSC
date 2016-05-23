@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.NetworkInformation;
 
 namespace _3DSCPC
 {
@@ -101,6 +102,21 @@ namespace _3DSCPC
         public void kill() {
             socket.Close();
             listener.Close();
+        }
+
+        public IPAddress getDHCPAddr() {
+            NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
+            foreach (NetworkInterface adapter in adapters) {
+                IPInterfaceProperties adapterProperties = adapter.GetIPProperties();
+                IPAddressCollection addresses = adapterProperties.DhcpServerAddresses;
+                if (addresses.Count > 0) {
+                    Console.WriteLine(adapter.Description);
+                    foreach (IPAddress address in addresses) {
+                        return address;
+                    }
+                }
+            }
+            return null;
         }
     }
 }

@@ -17,35 +17,29 @@ namespace _3DSCPC
     {
         public const int PORT = 25566;
 
-        string statusMessage = "";
+        bool firstMinimize = true;
 
+        JoystickHelper joystickHelper;
         string broadcastAddr = "";
         NetHelper netHelper = new NetHelper(PORT);
-        static public vJoy joystick;
-        static public vJoy.JoystickState iReport;
-        static public uint id = 1;
-        int axisMax = 0;
+        
         System.Threading.Thread listenerThread;
 
         public Form1() {
             InitializeComponent();
-
-            joystick = new vJoy();
-            iReport = new vJoy.JoystickState();
-            long lAxisMax = 0;
-            joystick.GetVJDAxisMax(id, HID_USAGES.HID_USAGE_X, ref lAxisMax);
-            axisMax = (int)lAxisMax;
+            
+            joystickHelper = new JoystickHelper();
 
             btnStopBroadcast.Enabled = false;
 
-            string error = null;
-            if ((error = vjoyhelper.setup(joystick, id)) != null) {
-                int a = 0;
-            }
-
-            var addressList = System.Net.Dns.GetHostByName(Environment.MachineName).AddressList;
-            for (int i = 0; i < addressList.Length; i++) {
-                cbboxIP.Items.Add(addressList[i].ToString());
+            IPAddress dhcpIP = netHelper.getDHCPAddr();
+            var addressList = Dns.GetHostByName(Environment.MachineName).AddressList;
+            foreach (var a in addressList) {
+                if (IPAddressExtensions.IsInSameSubnet(dhcpIP, a, IPAddressExtensions.GetSubnetMask(a))) {
+                    cbboxIP.Items.Add(a.ToString());
+                    cbboxIP.SelectedIndex = 0;
+                    cbboxIP.Refresh();
+                }
             }
 
             listenerThread = new System.Threading.Thread(() => {
@@ -56,49 +50,15 @@ namespace _3DSCPC
                             case NetHelper.Message.Type.CONNECT:
                                 break;
                             case NetHelper.Message.Type.INPUT:
-                                Keys.update(message.btn);
-
-                                int angle = -1;
-                                if (angle == -1 && Keys.isDown(Keys.DRIGHT)) {
-                                    angle = 9000;
-                                    if (Keys.isDown(Keys.DDOWN))
-                                        angle += 4500;
-                                    if (Keys.isDown(Keys.DUP))
-                                        angle -= 4500;
-                                }
-
-                                if (angle == -1 && Keys.isDown(Keys.DLEFT)) {
-                                    angle = 27000;
-                                    if (Keys.isDown(Keys.DDOWN))
-                                        angle -= 4500;
-                                    if (Keys.isDown(Keys.DUP))
-                                        angle += 4500;
-                                }
-
-                                if (angle == -1 && Keys.isDown(Keys.DUP)) angle = 0;
-                                if (angle == -1 && Keys.isDown(Keys.DDOWN)) angle = 18000;
-
-                                joystick.SetContPov(angle, id, 1);
-
-                                joystick.SetBtn(Keys.isDown(Keys.A), id, 1);
-                                joystick.SetBtn(Keys.isDown(Keys.B), id, 2);
-                                joystick.SetBtn(Keys.isDown(Keys.X), id, 3);
-                                joystick.SetBtn(Keys.isDown(Keys.Y), id, 4);
-                                joystick.SetBtn(Keys.isDown(Keys.L), id, 5);
-                                joystick.SetBtn(Keys.isDown(Keys.R), id, 6);
-                                joystick.SetBtn(Keys.isDown(Keys.SELECT), id, 7);
-                                joystick.SetBtn(Keys.isDown(Keys.START), id, 8);
-
-                                float localX = ((message.pdx + 156) / 312.0f);
-                                float localY = 1 - ((message.pdy + 156) / 312.0f);
-                                joystick.SetAxis((int)(localX * axisMax), id, HID_USAGES.HID_USAGE_X);
-                                joystick.SetAxis((int)(localY * axisMax), id, HID_USAGES.HID_USAGE_Y);
-
+                                joystickHelper.parseMessage(message);
                                 break;
                         };
                     }
                 }
-                catch (Exception e) { int a = 0; }
+                catch (Exception e) {
+                    if (!(e is ThreadAbortException))
+                        throw new Exception(e.Message);
+                }
             });
             listenerThread.Start();
         }
@@ -135,6 +95,27 @@ namespace _3DSCPC
             cbboxIP.Enabled = true;
             btnBroadcast.Enabled = true;
             btnStopBroadcast.Enabled = false;
+        }
+
+        private void Form1_Resize(object sender, EventArgs e) {
+            if (WindowState == FormWindowState.Minimized && ckMinimizeToTray.CheckState == CheckState.Checked) {
+                notifMinimize.Visible = true;
+                //if (firstMinimize) {
+                //    firstMinimize = false;
+                //    notifMinimize.BalloonTipIcon = ToolTipIcon.Info;
+                //    notifMinimize.BalloonTipText = "3DSC is still running";
+                //    notifMinimize.ShowBalloonTip(500);
+                //}
+                ShowInTaskbar = false;
+                Hide();
+            }
+        }
+
+        private void notifMinimize_DoubleClick(object sender, EventArgs e) {
+            Show();
+            WindowState = FormWindowState.Normal;
+            ShowInTaskbar = true;
+            notifMinimize.Visible = false;
         }
     }
 }

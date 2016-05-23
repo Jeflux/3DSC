@@ -57,6 +57,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="IPAddressExtensions.cs" />
+    <Compile Include="JoystickHelper.cs" />
     <Compile Include="Keys.cs" />
     <Compile Include="NetHelper.cs" />
     <Compile Include="Program.cs" />

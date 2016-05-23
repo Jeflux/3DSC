@@ -32,16 +32,16 @@ namespace _3DSCPC
         public static UInt32 CPAD_UP           = 1 << 30;
         public static UInt32 CPAD_DOWN         = 2147483648;
         
-        private static UInt32 _btn;
+        private UInt32 _btn;
 
-        public static bool isDown(UInt32 key) {
+        public bool isDown(UInt32 key) {
             if ((_btn & key) == key)
                 return true;
 
             return false;
         }
 
-        public static void update(UInt32 btn) {
+        public void update(UInt32 btn) {
             _btn = btn;
         }
     }
