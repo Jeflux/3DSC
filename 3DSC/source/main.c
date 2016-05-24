@@ -57,59 +57,69 @@ int main(int argc, char **argv) {
 	gfxInitDefault();
 	socInit((u32 *)memalign(0x1000, 0x100000), 0x100000);
 
+	// Check wifi status
 	u32 wifiStatus = 0;
 	ACU_GetWifiStatus(&wifiStatus);
 	if (!wifiStatus) {
 		printf("\x1b[1;1HNo WiFi! Is your wireless slider on?");
 	}
-
 	
+	// Use printf on top screen
 	consoleInit(GFX_TOP, NULL);
 
+	// Stuff for network magic
 	int recvlen;
 	unsigned char buf[BUFSIZE];
 
+	// Try create socket
 	int err = 0;
 	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		err = 1;
 	}
 
+	// Setup socket addresses
 	out.sin_family = in.sin_family = AF_INET;
-	out.sin_port = in.sin_port = htons(PORT);
+	out.sin_port = in.sin_port = htons(PORT); // Set port
 	in.sin_addr.s_addr = INADDR_ANY;
 
-	if (err == 0 && bind(sock, (struct sockaddr *)&in, sizeof(in)) < 0) {
+	// Try to bind socket to port
+	if (err == 0 && bind(sock, (struct sockaddr *)&in, sizeof(in)) < 0)
 		err = 2;
-	}
 	
+	// If any errors
 	if (err != 0)
 		printf("\x1b[4;1HError opening connection: %i", err);
 
+	// Set socket receive to non-blocking to be able to exit while listening for broadcast
 	fcntl(sock, F_SETFL, O_NONBLOCK);
 
+
 	bool connected = false;
-	int count = 0;
 
 	// Main loop
 	while (aptMainLoop()) {		
-		count++;
-
+		
 		if (err == 0) {
+			// If not connected, listen for broadcast
 			if (!connected) {
 				printf("\x1b[1;1HListening for broadcast on port %d", PORT);
-				recvlen = recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&out, &addrlen);
-				if (recvlen > 0) {
-					printf("\x1b[2;1Hr");
 
-					buf[recvlen] = 0; 
+				// Listen for packets. Returns packet size
+				recvlen = recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&out, &addrlen);
+				
+				// Check if correct packet. recvlen < 0 -> Error
+				if (recvlen > 0) {
+					printf("\x1b[2;1Hr"); // Debug print. Writes r for any packet received
+					buf[recvlen] = 0; // Don't remember what this is for. Oops
+
+					// Check if message is connection port (Broadcast sends out port number as broadcast)
 					int i = atoi(buf);
 					if (i == PORT) {
+						// If broadcast message, assign send address to received address
 						in.sin_addr.s_addr = out.sin_addr.s_addr;
 
+						// Prepare program; Setting flag, turning of backlight, etc
 						connected = true;
-						gfxFlushBuffers();
-						gfxSwapBuffers();
-						gspWaitForVBlank();
 						printf("\x1b[2;1HConnected");
 						disableBacklight();
 					}
@@ -119,27 +129,36 @@ int main(int argc, char **argv) {
 		
 		printf("\x1b[29;1HPress START and SELECT to exit");
 		
+		// Scan input
 		hidScanInput();
+		// Save keystate
 		u32 kDown = hidKeysHeld();
 
 		if ((kDown & KEY_START) && (kDown & KEY_SELECT)) break; // break in order to return to hbmenu
 		
+		// If no errors and connected. Contruct input message
 		if (err == 0 && connected) {
+			// Get circle pad state
 			circlePosition pos;
 			hidCircleRead(&pos);
 			
+			// Construct message
 			message.pdx = pos.dx;
 			message.pdy = pos.dy;
 			message.btn = kDown;
+
+			// Send packet to address broadcast came from
 			sendto(sock, &message, sizeof(message), 0, (struct sockaddr *)&in, sizeof(in));
 		}
 
+		// Draw stuff
 		gfxFlushBuffers();
 		gfxSwapBuffers();
 		gspWaitForVBlank();
 	}
-	enableBacklight();
 
+	// On exit
+	enableBacklight();
 	socExit();
 	gfxExit();
 	return 0;
