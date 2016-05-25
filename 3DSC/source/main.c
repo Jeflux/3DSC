@@ -14,14 +14,16 @@
 //The bottom screen has 30 rows and 40 columns
 
 #define PORT 25566 
-#define BUFSIZE 2048
+#define BUFSIZE 32
 
 int sock;
 struct sockaddr_in in;
 struct sockaddr_in out;
 socklen_t addrlen = (int)sizeof(struct sockaddr_in);
+short playerID = 0;
 
 struct Message {
+	unsigned short ID;
 	unsigned short pdx;
 	unsigned short pdy;
 	unsigned int btn;
@@ -40,10 +42,10 @@ static u32 brightnessSub;
 
 void disableBacklight() {
 	u32 off = 0;
-	
+
 	GSPGPU_ReadHWRegs(REG_LCDBACKLIGHTMAIN, &brightnessMain, 4);
 	GSPGPU_ReadHWRegs(REG_LCDBACKLIGHTSUB, &brightnessSub, 4);
-	
+
 	GSPGPU_WriteHWRegs(REG_LCDBACKLIGHTMAIN, &off, 4);
 	GSPGPU_WriteHWRegs(REG_LCDBACKLIGHTSUB, &off, 4);
 }
@@ -63,13 +65,14 @@ int main(int argc, char **argv) {
 	if (!wifiStatus) {
 		printf("\x1b[1;1HNo WiFi! Is your wireless slider on?");
 	}
-	
+
 	// Use printf on top screen
 	consoleInit(GFX_TOP, NULL);
 
 	// Stuff for network magic
 	int recvlen;
 	unsigned char buf[BUFSIZE];
+	unsigned char IDBuf[BUFSIZE];
 
 	// Try create socket
 	int err = 0;
@@ -85,7 +88,7 @@ int main(int argc, char **argv) {
 	// Try to bind socket to port
 	if (err == 0 && bind(sock, (struct sockaddr *)&in, sizeof(in)) < 0)
 		err = 2;
-	
+
 	// If any errors
 	if (err != 0)
 		printf("\x1b[4;1HError opening connection: %i", err);
@@ -97,8 +100,8 @@ int main(int argc, char **argv) {
 	bool connected = false;
 
 	// Main loop
-	while (aptMainLoop()) {		
-		
+	while (aptMainLoop()) {
+
 		if (err == 0) {
 			// If not connected, listen for broadcast
 			if (!connected) {
@@ -106,13 +109,13 @@ int main(int argc, char **argv) {
 
 				// Listen for packets. Returns packet size
 				recvlen = recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&out, &addrlen);
-				
+
 				// Check if correct packet. recvlen < 0 -> Error
 				if (recvlen > 0) {
 					printf("\x1b[2;1Hr"); // Debug print. Writes r for any packet received
 					buf[recvlen] = 0; // Don't remember what this is for. Oops
 
-					// Check if message is connection port (Broadcast sends out port number as broadcast)
+									  // Check if message is connection port (Broadcast sends out port number as broadcast)
 					int i = atoi(buf);
 					if (i == PORT) {
 						// If broadcast message, assign send address to received address
@@ -120,36 +123,62 @@ int main(int argc, char **argv) {
 
 						// Prepare program; Setting flag, turning of backlight, etc
 						connected = true;
+						consoleClear();
 						printf("\x1b[2;1HConnected");
-						disableBacklight();
+						//disableBacklight();
 					}
 				}
 			}
 		}
-		
+
+		printf("\x1b[28;1HPlayer ID: %i", playerID);
 		printf("\x1b[29;1HPress START and SELECT to exit");
-		
+
 		// Scan input
 		hidScanInput();
 		// Save keystate
 		u32 kDown = hidKeysHeld();
 
 		if ((kDown & KEY_START) && (kDown & KEY_SELECT)) break; // break in order to return to hbmenu
-		
-		// If no errors and connected. Contruct input message
+
+																// If no errors and connected. Contruct input message
 		if (err == 0 && connected) {
 			// Get circle pad state
 			circlePosition pos;
 			hidCircleRead(&pos);
-			
+
 			// Construct message
+			message.ID = playerID;
 			message.pdx = pos.dx;
 			message.pdy = pos.dy;
 			message.btn = kDown;
 
 			// Send packet to address broadcast came from
 			sendto(sock, &message, sizeof(message), 0, (struct sockaddr *)&in, sizeof(in));
+			
+			int recv = 0;
+			int count = 0;
+			do {
+				count++;
+				// Send packet to address broadcast came from
+				sendto(sock, &message, sizeof(message), 0, (struct sockaddr *)&in, sizeof(in));
+				// Listen for packet to get player ID and check if server is alive
+				//int recv = read(sock, IDBuf, sizeof(IDBuf));
+				recv = recvfrom(sock, IDBuf, BUFSIZE, 0, (struct sockaddr *)&out, &addrlen);
+			} while (atoi(IDBuf) == PORT && count < 5);
+			
+			if (count < 5 && recv > 0)
+				playerID = IDBuf[0] | IDBuf[1] << 1;
+			else {
+				connected = false;
+				playerID = 0;
+				consoleClear();
+				printf("\x1b[3;1HDisconnected");
+			}
 		}
+
+		u64 sleepDuration = 16000000ULL;
+		svcSleepThread(sleepDuration);
 
 		// Draw stuff
 		gfxFlushBuffers();
@@ -158,7 +187,7 @@ int main(int argc, char **argv) {
 	}
 
 	// On exit
-	enableBacklight();
+	//enableBacklight();
 	socExit();
 	gfxExit();
 	return 0;

@@ -39,6 +39,7 @@ namespace _3DSCPC
             };
 
             public Type type;
+            public int ID;
             public int pdx;
             public int pdy;
             public UInt32 btn;
@@ -68,30 +69,42 @@ namespace _3DSCPC
             Byte[] receiveBytes = { };
             try {
                 // Wait for packet of right length
-                while (receiveBytes.Length != 8) {
+                while (receiveBytes.Length != 12) {
                     receiveBytes = listener.Receive(ref remoteIpEndPoint);
                     returnData = Encoding.ASCII.GetString(receiveBytes);
 
                     // Only deserialize if correct packet
-                    if (receiveBytes.Length != 8)
+                    if (receiveBytes.Length != 12)
                         continue;
 
                     retData = "";
+                    int ID = BitConverter.ToInt16(receiveBytes, 0);
+
                     Byte[] pdxb = { receiveBytes[0], receiveBytes[1] };
-                    int pdx = BitConverter.ToInt16(receiveBytes, 0);
+                    int pdx = BitConverter.ToInt16(receiveBytes, 2);
 
                     Byte[] pdyb = { receiveBytes[2], receiveBytes[3] };
-                    int pdy = BitConverter.ToInt16(receiveBytes, 2);
+                    int pdy = BitConverter.ToInt16(receiveBytes, 4);
 
                     Byte[] btnb = { receiveBytes[4], receiveBytes[5], receiveBytes[6], receiveBytes[7] };
-                    UInt32 btn = BitConverter.ToUInt32(receiveBytes, 4);
+                    UInt32 btn = BitConverter.ToUInt32(receiveBytes, 8);
 
                     retData = pdx.ToString() + "    " + pdy.ToString() + "    " + btn;
 
                     ret.type = Message.Type.INPUT;
+                    ret.ID = ID;
                     ret.pdx = pdx;
                     ret.pdy = pdy;
                     ret.btn = btn;
+
+                    if (ID > 0) {
+                        byte[] buf = BitConverter.GetBytes(ID);
+                        socket.SendTo(buf, remoteIpEndPoint);
+                    }
+                    else {
+                        byte[] buf = BitConverter.GetBytes(1);
+                        socket.SendTo(buf, remoteIpEndPoint);
+                    }
                 }
             }
             catch (Exception e){ }
