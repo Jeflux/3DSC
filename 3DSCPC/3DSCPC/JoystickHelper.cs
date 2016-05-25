@@ -9,11 +9,15 @@ namespace _3DSCPC
 {
     class JoystickHelper
     {
+        List<int> availJoy = new List<int>();
+        List<int> connectedJoy = new List<int>();
+
         private Keys keys;
         public vJoy joystick;
         public vJoy.JoystickState iReport;
         public uint id = 1;
         int axisMax = 0;
+        public int numberOfDevices;
         
         public JoystickHelper() {
             keys = new Keys();
@@ -24,9 +28,18 @@ namespace _3DSCPC
             axisMax = (int)lAxisMax;
 
             string error = null;
-            if ((error = vjoyhelper.setup(joystick, id)) != null) {
-                throw new Exception("Cannot setup joystick");
+
+            int nDevices = 0;
+            for (uint i = 1; i <= 16; i++) {
+                if ((error = vjoyhelper.setup(joystick, i)) != null) {
+                    // Assume no more devices are set up correctly
+                    break;
+                }
+                nDevices++;
             }
+            for (int i = 1; i <= nDevices; i++)
+                availJoy.Add(i);
+            numberOfDevices = nDevices;
         }
 
         public void parseMessage(NetHelper.Message message) {
@@ -52,21 +65,41 @@ namespace _3DSCPC
             if (angle == -1 && keys.isDown(Keys.DUP)) angle = 0;
             if (angle == -1 && keys.isDown(Keys.DDOWN)) angle = 18000;
 
-            joystick.SetContPov(angle, id, 1);
+            joystick.SetContPov(angle, message.ID, 1);
 
-            joystick.SetBtn(keys.isDown(Keys.A), id, 1);
-            joystick.SetBtn(keys.isDown(Keys.B), id, 2);
-            joystick.SetBtn(keys.isDown(Keys.X), id, 3);
-            joystick.SetBtn(keys.isDown(Keys.Y), id, 4);
-            joystick.SetBtn(keys.isDown(Keys.L), id, 5);
-            joystick.SetBtn(keys.isDown(Keys.R), id, 6);
-            joystick.SetBtn(keys.isDown(Keys.SELECT), id, 7);
-            joystick.SetBtn(keys.isDown(Keys.START), id, 8);
+            joystick.SetBtn(keys.isDown(Keys.A), message.ID, 1);
+            joystick.SetBtn(keys.isDown(Keys.B), message.ID, 2);
+            joystick.SetBtn(keys.isDown(Keys.X), message.ID, 3);
+            joystick.SetBtn(keys.isDown(Keys.Y), message.ID, 4);
+            joystick.SetBtn(keys.isDown(Keys.L), message.ID, 5);
+            joystick.SetBtn(keys.isDown(Keys.R), message.ID, 6);
+            joystick.SetBtn(keys.isDown(Keys.SELECT), message.ID, 7);
+            joystick.SetBtn(keys.isDown(Keys.START), message.ID, 8);
 
             float localX = ((message.pdx + 156) / 312.0f);
             float localY = 1 - ((message.pdy + 156) / 312.0f);
-            joystick.SetAxis((int)(localX * axisMax), id, HID_USAGES.HID_USAGE_X);
-            joystick.SetAxis((int)(localY * axisMax), id, HID_USAGES.HID_USAGE_Y);
+            joystick.SetAxis((int)(localX * axisMax), message.ID, HID_USAGES.HID_USAGE_X);
+            joystick.SetAxis((int)(localY * axisMax), message.ID, HID_USAGES.HID_USAGE_Y);
+        }
+
+        public int connectJoystick() {
+            if (availJoy.Count < 0)
+                return 0;
+
+            int i = availJoy[0];
+            availJoy.RemoveAt(0);
+            connectedJoy.Add(i);
+            return i;
+        }
+
+        public void disconnectJoystick(int ID) {
+            availJoy.Add(ID);
+            connectedJoy.Remove(ID);
+            availJoy.Sort();
+        }
+
+        public int[] getConnectedDevices() {
+            return connectedJoy.ToArray();
         }
     }
 }

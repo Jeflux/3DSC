@@ -38,11 +38,12 @@
             this.btnBroadcast = new System.Windows.Forms.Button();
             this.btnStopBroadcast = new System.Windows.Forms.Button();
             this.notifMinimize = new System.Windows.Forms.NotifyIcon(this.components);
+            this.nethelperTickTimer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // btnExit
             // 
-            this.btnExit.Location = new System.Drawing.Point(270, 94);
+            this.btnExit.Location = new System.Drawing.Point(270, 110);
             this.btnExit.Name = "btnExit";
             this.btnExit.Size = new System.Drawing.Size(75, 23);
             this.btnExit.TabIndex = 0;
@@ -57,7 +58,7 @@
             // ckMinimizeToTray
             // 
             this.ckMinimizeToTray.AutoSize = true;
-            this.ckMinimizeToTray.Location = new System.Drawing.Point(12, 100);
+            this.ckMinimizeToTray.Location = new System.Drawing.Point(12, 116);
             this.ckMinimizeToTray.Name = "ckMinimizeToTray";
             this.ckMinimizeToTray.Size = new System.Drawing.Size(98, 17);
             this.ckMinimizeToTray.TabIndex = 1;
@@ -109,11 +110,17 @@
             this.notifMinimize.Text = "notifyIcon1";
             this.notifMinimize.DoubleClick += new System.EventHandler(this.notifMinimize_DoubleClick);
             // 
+            // nethelperTickTimer
+            // 
+            this.nethelperTickTimer.Enabled = true;
+            this.nethelperTickTimer.Interval = 50;
+            this.nethelperTickTimer.Tick += new System.EventHandler(this.nethelperTickTimer_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(357, 129);
+            this.ClientSize = new System.Drawing.Size(357, 145);
             this.Controls.Add(this.btnStopBroadcast);
             this.Controls.Add(this.btnBroadcast);
             this.Controls.Add(this.label1);
@@ -141,6 +148,7 @@
         private System.Windows.Forms.Button btnBroadcast;
         private System.Windows.Forms.Button btnStopBroadcast;
         private System.Windows.Forms.NotifyIcon notifMinimize;
+        private System.Windows.Forms.Timer nethelperTickTimer;
     }
 }
 

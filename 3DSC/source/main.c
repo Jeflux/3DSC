@@ -21,6 +21,7 @@ struct sockaddr_in in;
 struct sockaddr_in out;
 socklen_t addrlen = (int)sizeof(struct sockaddr_in);
 short playerID = 0;
+bool backlightOff = false;
 
 struct Message {
 	unsigned short ID;
@@ -124,8 +125,10 @@ int main(int argc, char **argv) {
 						// Prepare program; Setting flag, turning of backlight, etc
 						connected = true;
 						consoleClear();
-						printf("\x1b[2;1HConnected");
-						//disableBacklight();
+						printf("\x1b[1;1HConnected");
+						if (backlightOff == false)
+							disableBacklight();
+						backlightOff = true;
 					}
 				}
 			}
@@ -141,7 +144,7 @@ int main(int argc, char **argv) {
 
 		if ((kDown & KEY_START) && (kDown & KEY_SELECT)) break; // break in order to return to hbmenu
 
-																// If no errors and connected. Contruct input message
+		// If no errors and connected. Contruct input message
 		if (err == 0 && connected) {
 			// Get circle pad state
 			circlePosition pos;
@@ -173,7 +176,7 @@ int main(int argc, char **argv) {
 				connected = false;
 				playerID = 0;
 				consoleClear();
-				printf("\x1b[3;1HDisconnected");
+				printf("\x1b[2;1HDisconnected");
 			}
 		}
 
@@ -187,7 +190,8 @@ int main(int argc, char **argv) {
 	}
 
 	// On exit
-	//enableBacklight();
+	if (backlightOff == true)
+		enableBacklight();
 	socExit();
 	gfxExit();
 	return 0;

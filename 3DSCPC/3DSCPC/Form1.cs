@@ -21,7 +21,7 @@ namespace _3DSCPC
 
         JoystickHelper joystickHelper;
         string broadcastAddr = "";
-        NetHelper netHelper = new NetHelper(PORT);
+        NetHelper netHelper;
         
         System.Threading.Thread listenerThread;
 
@@ -29,6 +29,7 @@ namespace _3DSCPC
             InitializeComponent();
             
             joystickHelper = new JoystickHelper();
+            netHelper = new NetHelper(PORT, joystickHelper);
 
             btnStopBroadcast.Enabled = false;
 
@@ -61,6 +62,7 @@ namespace _3DSCPC
                 }
             });
             listenerThread.Start();
+            
         }
 
         private void btnExit_Click(object sender, EventArgs e) {
@@ -116,6 +118,10 @@ namespace _3DSCPC
             WindowState = FormWindowState.Normal;
             ShowInTaskbar = true;
             notifMinimize.Visible = false;
+        }
+
+        private void nethelperTickTimer_Tick(object sender, EventArgs e) {
+            netHelper.update();
         }
     }
 }

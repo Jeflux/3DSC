@@ -11,6 +11,13 @@ namespace _3DSCPC
 {
     class NetHelper
     {
+        class ConnectionInformation {
+            public int ID = 0;
+            public int tickLastHeardOf = 0;
+        }
+
+        Dictionary<IPAddress, ConnectionInformation> IPID = new Dictionary<IPAddress, ConnectionInformation>();
+
         UdpClient listener;
         IPEndPoint groupEP;
         Socket socket;
@@ -20,7 +27,9 @@ namespace _3DSCPC
 
         int port;
 
-        public NetHelper(int port) {
+        JoystickHelper joystickHelper;
+
+        public NetHelper(int port, JoystickHelper joystickHelper) {
             this.port = port;
             listener = new UdpClient(port);
             groupEP = new IPEndPoint(IPAddress.Any, port);
@@ -28,6 +37,7 @@ namespace _3DSCPC
             remoteIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
             connectionMessage = port.ToString();
+            this.joystickHelper = joystickHelper;
         }
 
 
@@ -39,7 +49,7 @@ namespace _3DSCPC
             };
 
             public Type type;
-            public int ID;
+            public uint ID;
             public int pdx;
             public int pdy;
             public UInt32 btn;
@@ -59,7 +69,22 @@ namespace _3DSCPC
             //byte[] m = Encoding.ASCII.GetBytes(connectionMessage);
             //s.SendTo(m, endPoint);
         }
-        
+
+        List<IPAddress> toRemove = new List<IPAddress>();
+        public void update() {
+            foreach (var c in IPID) {
+                c.Value.tickLastHeardOf++;
+                if (c.Value.tickLastHeardOf > 10) {
+                    toRemove.Add(c.Key);
+                    joystickHelper.disconnectJoystick(c.Value.ID);
+                }
+            }
+
+            foreach (IPAddress i in toRemove) {
+                IPID.Remove(i);
+            }
+            toRemove.Clear();
+        }
 
         public Message listen() {
             Message ret = new Message();
@@ -92,17 +117,32 @@ namespace _3DSCPC
                     retData = pdx.ToString() + "    " + pdy.ToString() + "    " + btn;
 
                     ret.type = Message.Type.INPUT;
-                    ret.ID = ID;
+                    ret.ID = (uint)(int)ID;
                     ret.pdx = pdx;
                     ret.pdy = pdy;
                     ret.btn = btn;
 
                     if (ID > 0) {
                         byte[] buf = BitConverter.GetBytes(ID);
+                        IPID[remoteIpEndPoint.Address].tickLastHeardOf = 0;
                         socket.SendTo(buf, remoteIpEndPoint);
                     }
                     else {
-                        byte[] buf = BitConverter.GetBytes(1);
+                        byte[] buf = BitConverter.GetBytes((ushort)0);
+                        
+                        if (IPID.ContainsKey(remoteIpEndPoint.Address)) {
+                            buf = BitConverter.GetBytes((ushort)IPID[remoteIpEndPoint.Address].ID);
+                        }
+                        else {
+                            int i = joystickHelper.connectJoystick();
+
+                            if (i > 0) {
+                                ConnectionInformation conn = new ConnectionInformation();
+                                conn.ID = i;
+                                IPID.Add(remoteIpEndPoint.Address, conn);
+                                buf = BitConverter.GetBytes((ushort)i);
+                            }
+                        }
                         socket.SendTo(buf, remoteIpEndPoint);
                     }
                 }
