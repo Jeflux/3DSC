@@ -97,12 +97,12 @@ namespace _3DSCPC
             Byte[] receiveBytes = { };
             try {
                 // Wait for packet of right length
-                while (receiveBytes.Length != 12) {
+                while (receiveBytes.Length != 16) {
                     receiveBytes = listener.Receive(ref remoteIpEndPoint);
                     returnData = Encoding.ASCII.GetString(receiveBytes);
 
                     // Only deserialize if correct packet
-                    if (receiveBytes.Length != 12)
+                    if (receiveBytes.Length != 16)
                         continue;
 
                     retData = "";
@@ -117,6 +117,9 @@ namespace _3DSCPC
                     Byte[] btnb = { receiveBytes[4], receiveBytes[5], receiveBytes[6], receiveBytes[7] };
                     UInt32 btn = BitConverter.ToUInt32(receiveBytes, 8);
 
+                    UInt16 touchpx = BitConverter.ToUInt16(receiveBytes, 12);
+                    UInt16 touchpy = BitConverter.ToUInt16(receiveBytes, 14);
+
                     retData = pdx.ToString() + "    " + pdy.ToString() + "    " + btn;
 
                     ret.type = Message.Type.INPUT;
@@ -124,6 +127,8 @@ namespace _3DSCPC
                     ret.pdx = pdx;
                     ret.pdy = pdy;
                     ret.btn = btn;
+                    ret.touch_px = touchpx;
+                    ret.touch_py = touchpy;
 
                     if (ID > 0) {
                         byte[] buf = BitConverter.GetBytes(ID);
