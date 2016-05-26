@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using vJoyInterfaceWrap;
 
+using System.Windows.Forms; // Screen (sorry!)
+using System.Runtime.InteropServices; // DllImport-attribute
+
 namespace _3DSCPC
 {
     class JoystickHelper
@@ -18,6 +21,9 @@ namespace _3DSCPC
         public uint id = 1;
         int axisMax = 0;
         public int numberOfDevices;
+
+        [DllImport("user32.dll")]
+        static extern bool SetCursorPos(int x, int y);
         
         public JoystickHelper() {
             keys = new Keys();
@@ -80,6 +86,23 @@ namespace _3DSCPC
             float localY = 1 - ((message.pdy + 156) / 312.0f);
             joystick.SetAxis((int)(localX * axisMax), message.ID, HID_USAGES.HID_USAGE_X);
             joystick.SetAxis((int)(localY * axisMax), message.ID, HID_USAGES.HID_USAGE_Y);
+
+            // Touch & Cursor interaction
+            if (keys.isDown(Keys.TOUCH)) {
+                int xx = message.touch_px;
+                int yy = message.touch_py;
+
+                float rx = xx / 320.0f;
+                float ry = yy / 240.0f;
+
+                int screen_w = Screen.PrimaryScreen.Bounds.Width;
+                int screen_h = Screen.PrimaryScreen.Bounds.Width;
+
+                int x = (int)(rx * screen_w);
+                int y = (int)(ry * screen_h);
+
+                SetCursorPos(x, y);
+            }
         }
 
         public int connectJoystick() {
