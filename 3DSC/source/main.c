@@ -177,6 +177,11 @@ int main(int argc, char **argv) {
 				playerID = 0;
 				consoleClear();
 				printf("\x1b[2;1HDisconnected");
+
+				if (backlightOff == true) {
+					enableBacklight();
+					backlightOff = false;
+				}
 			}
 		}
 

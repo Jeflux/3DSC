@@ -153,6 +153,7 @@ namespace _3DSCPC
         }
 
         public void kill() {
+            listener.Close();
             socket.Close();
             listener.Close();
         }
