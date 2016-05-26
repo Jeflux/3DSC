@@ -103,7 +103,7 @@ namespace _3DSCPC
                 float ry = yy / 240.0f;
 
                 int screen_w = Screen.PrimaryScreen.Bounds.Width;
-                int screen_h = Screen.PrimaryScreen.Bounds.Width;
+                int screen_h = Screen.PrimaryScreen.Bounds.Height;
 
                 int x = (int)(rx * screen_w);
                 int y = (int)(ry * screen_h);
