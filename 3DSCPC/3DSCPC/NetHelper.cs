@@ -53,6 +53,9 @@ namespace _3DSCPC
             public int pdx;
             public int pdy;
             public UInt32 btn;
+
+            public UInt16 touch_px;
+            public UInt16 touch_py;
         }
 
         public void broadcast(string addr) {
