@@ -13,7 +13,7 @@
 //The top screen has 30 rows and 50 columns
 //The bottom screen has 30 rows and 40 columns
 
-#define PORT 25566 
+#define PORT 25566
 #define BUFSIZE 32
 
 int sock;
@@ -28,6 +28,9 @@ struct Message {
 	unsigned short pdx;
 	unsigned short pdy;
 	unsigned int btn;
+
+	u16 touch_px; // Touchscreen pixel x-coord
+	u16 touch_py; // Touchscreen pixel y-coord
 } message;
 
 #ifndef REG_LCDBACKLIGHTMAIN
@@ -156,9 +159,16 @@ int main(int argc, char **argv) {
 			message.pdy = pos.dy;
 			message.btn = kDown;
 
+			// Query for touchscreen information
+			touchPosition touch;
+			hidTouchRead(&touch);
+
+			message.touch_px = touch.px;
+			message.touch_py = touch.py;
+
 			// Send packet to address broadcast came from
 			sendto(sock, &message, sizeof(message), 0, (struct sockaddr *)&in, sizeof(in));
-			
+
 			int recv = 0;
 			int count = 0;
 			do {
@@ -169,7 +179,7 @@ int main(int argc, char **argv) {
 				//int recv = read(sock, IDBuf, sizeof(IDBuf));
 				recv = recvfrom(sock, IDBuf, BUFSIZE, 0, (struct sockaddr *)&out, &addrlen);
 			} while (atoi(IDBuf) == PORT && count < 5);
-			
+
 			if (count < 5 && recv > 0)
 				playerID = IDBuf[0] | IDBuf[1] << 1;
 			else {
