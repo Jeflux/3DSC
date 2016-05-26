@@ -33,6 +33,21 @@ namespace _3DSCPC
         public static UInt32 CPAD_DOWN         = 2147483648;
         
         private UInt32 _btn;
+        private UInt32 _lastBtn;
+        
+        public bool pressed(UInt32 key) {
+            if ((_lastBtn & key) == 0 && (_btn & key) == key)
+                return true;
+
+            return false;
+        }
+
+        public bool released(UInt32 key) {
+            if ((_lastBtn & key) == key && (_btn & key) == 0)
+                return true;
+
+            return false;
+        }
 
         public bool isDown(UInt32 key) {
             if ((_btn & key) == key)
@@ -42,6 +57,7 @@ namespace _3DSCPC
         }
 
         public void update(UInt32 btn) {
+            _lastBtn = _btn;
             _btn = btn;
         }
     }

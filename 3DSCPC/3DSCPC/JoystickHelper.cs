@@ -24,7 +24,14 @@ namespace _3DSCPC
 
         [DllImport("user32.dll")]
         static extern bool SetCursorPos(int x, int y);
-        
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
+
+        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
+        private const int MOUSEEVENTF_LEFTUP = 0x04;
+        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
+        private const int MOUSEEVENTF_RIGHTUP = 0x10;
+
         public JoystickHelper() {
             keys = new Keys();
             joystick = new vJoy();
@@ -102,6 +109,17 @@ namespace _3DSCPC
                 int y = (int)(ry * screen_h);
 
                 SetCursorPos(x, y);
+
+                // Mouse click
+                if (keys.pressed(Keys.L) || keys.pressed(Keys.R))
+                    mouse_event(MOUSEEVENTF_LEFTDOWN, (uint)x, (uint)y, 0, 0);
+                else if (keys.released(Keys.L) || keys.released(Keys.R))
+                    mouse_event(MOUSEEVENTF_LEFTUP, (uint)x, (uint)y, 0, 0);
+
+                if (keys.pressed(Keys.DUP) || keys.pressed(Keys.X))
+                    mouse_event(MOUSEEVENTF_RIGHTDOWN, (uint)x, (uint)y, 0, 0);
+                else if (keys.released(Keys.DUP) || keys.released(Keys.X))
+                    mouse_event(MOUSEEVENTF_RIGHTUP, (uint)x, (uint)y, 0, 0);
             }
         }
 
