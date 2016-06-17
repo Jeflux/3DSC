@@ -97,28 +97,28 @@ namespace _3DSCPC
             Byte[] receiveBytes = { };
             try {
                 // Wait for packet of right length
-                while (receiveBytes.Length != 16) {
+                while (receiveBytes.Length != 24) {
                     receiveBytes = listener.Receive(ref remoteIpEndPoint);
                     returnData = Encoding.ASCII.GetString(receiveBytes);
-
+                    
                     // Only deserialize if correct packet
-                    if (receiveBytes.Length != 16)
+                    if (receiveBytes.Length != 24)
                         continue;
 
                     retData = "";
                     int ID = BitConverter.ToInt16(receiveBytes, 0);
 
                     Byte[] pdxb = { receiveBytes[0], receiveBytes[1] };
-                    int pdx = BitConverter.ToInt16(receiveBytes, 2);
+                    int pdx = BitConverter.ToInt16(receiveBytes, 4);
 
                     Byte[] pdyb = { receiveBytes[2], receiveBytes[3] };
-                    int pdy = BitConverter.ToInt16(receiveBytes, 4);
+                    int pdy = BitConverter.ToInt16(receiveBytes, 8);
 
                     Byte[] btnb = { receiveBytes[4], receiveBytes[5], receiveBytes[6], receiveBytes[7] };
-                    UInt32 btn = BitConverter.ToUInt32(receiveBytes, 8);
+                    UInt32 btn = BitConverter.ToUInt32(receiveBytes, 12);
 
-                    UInt16 touchpx = BitConverter.ToUInt16(receiveBytes, 12);
-                    UInt16 touchpy = BitConverter.ToUInt16(receiveBytes, 14);
+                    UInt16 touchpx = BitConverter.ToUInt16(receiveBytes, 16);
+                    UInt16 touchpy = BitConverter.ToUInt16(receiveBytes, 20);
 
                     retData = pdx.ToString() + "    " + pdy.ToString() + "    " + btn;
 
@@ -131,15 +131,15 @@ namespace _3DSCPC
                     ret.touch_py = touchpy;
 
                     if (ID > 0) {
-                        byte[] buf = BitConverter.GetBytes(ID);
+                        byte[] buf = buf = Encoding.ASCII.GetBytes("" + ID);
                         IPID[remoteIpEndPoint.Address].tickLastHeardOf = 0;
                         socket.SendTo(buf, remoteIpEndPoint);
                     }
                     else {
-                        byte[] buf = BitConverter.GetBytes((ushort)0);
-                        
+                        byte[] buf = Encoding.ASCII.GetBytes("" + 0);
+
                         if (IPID.ContainsKey(remoteIpEndPoint.Address)) {
-                            buf = BitConverter.GetBytes((ushort)IPID[remoteIpEndPoint.Address].ID);
+                            buf = Encoding.ASCII.GetBytes("" + IPID[remoteIpEndPoint.Address].ID);
                         }
                         else {
                             int i = joystickHelper.connectJoystick();
@@ -148,7 +148,7 @@ namespace _3DSCPC
                                 ConnectionInformation conn = new ConnectionInformation();
                                 conn.ID = i;
                                 IPID.Add(remoteIpEndPoint.Address, conn);
-                                buf = BitConverter.GetBytes((ushort)i);
+                                buf = Encoding.ASCII.GetBytes("" + i);// BitConverter.GetBytes(i);
                             }
                         }
                         socket.SendTo(buf, remoteIpEndPoint);
