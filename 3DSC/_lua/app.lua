@@ -1,89 +1,89 @@
 local Application = {}
 
 function Application:start()
-	Socket.init()
+	self.mouseButton = require("button"):new()
+	self.mouseButton:setPosition(0, 0)
+	self.mouseButton:setSize(70, 32)
+	self.mouseButton:setText("Mouse")
+	self.mouseMode = false
+	
+	self.backlightOn = true
+	
+	self.exitButton = require("button"):new()
+	self.exitButton:setPosition(0, 240-33)
+	self.exitButton:setSize(70, 32)
+	self.exitButton:setText("Exit")
+	
+	self.network = require("networkcomponent")
+	self.network:start()
+	self.network:setSend(true, true, false)
 
-	self.connected = false	
-	self.socket = UDP.createSocket(PORT)
-	self.message = ""
-	self.hostAddr = ""
-	self.playerID = 0
-	self.serverSilentCount = 0
+	self.wasConnected = false
 end
 
 function Application:tick()
 	local pad = Controls.read()
-	if Controls.check(pad, KEY_SELECT) and Controls.check(pad, KEY_START) then
-		if connected == true then
-			Socket.close(self.socket)
-		end
-		Socket.term()
-		System.exit()
+	
+	self.network:tick()
+	
+	if self.network:isConnected() then
+		Screen.debugPrint(0, 0, "Connected to " .. self.network.hostAddr, Color.new(255, 255, 255), TOP_SCREEN)
+		Screen.debugPrint(0, 20, "Player: " .. self.network.playerID, Color.new(255, 255, 255), TOP_SCREEN)
+	else
+		Screen.debugPrint(0, 0, "Listening for broadcast on port " .. tostring(PORT), Color.new(255, 255, 255), TOP_SCREEN)
 	end
 	
-	Screen.debugPrint(0, 220, "Press start and select to exit", Color.new(255, 255, 255), TOP_SCREEN)
+	Screen.debugPrint(0, 220, "Touch screen to toggle back light", Color.new(255, 255, 255), TOP_SCREEN)
 	
-	-- Listen for broadcast if not connected
-	if self.connected == false then
-		Screen.debugPrint(0, 0, "Listening for broadcast on port " .. tostring(PORT), Color.new(255, 255, 255), TOP_SCREEN)
+	if self.network:isConnected() and not self.wasConnected then
+		self.backlightOn = false
+		self.wasConnected = true
+		Controls.disableScreen(TOP_SCREEN)
+		Controls.disableScreen(BOTTOM_SCREEN)
+	end
 	
-		local message = ""
-		message, self.hostAddr = UDP.receive(self.socket)
-		if #message > 0 and message == tostring(PORT) then
-			self.connected = true
-			UDP.connect(self.socket, self.hostAddr)
-			
-			Controls.disableScreen(TOP_SCREEN)
-			Controls.disableScreen(BOTTOM_SCREEN)
+	self.mouseButton:draw()
+	if not self.mouseMode then
+		self.exitButton:draw()	
+	end
+end
+
+function Application:touchDown(touchx, touchy)
+	self.mouseButton:down(touchx, touchy)
+	self.exitButton:down(touchx, touchy)
+end
+
+function Application:touchUp(touchx, touchy)
+	if self.mouseButton:up(touchx, touchy) then
+		self.network.sendTouch = not self.mouseMode
+		self.mouseMode = not self.mouseMode
+	
+		if self.mouseMode then
+			self.mouseButton:setText("<-")
+			self.mouseButton:setSize(20, 20)
+		else
+			self.mouseButton:setText("Mouse")
+			self.mouseButton:setSize(70, 32)
 		end
 		
 		return
 	end
 	
-	Screen.debugPrint(0, 0, "Connected to " .. self.hostAddr .. ":" .. tostring(PORT), Color.new(255, 255, 255), TOP_SCREEN)
-	
-	local padx, pady, touchx, touchy, buttons
-	padx, pady = Controls.readCirclePad()
-	touchx, touchy = Controls.readTouch()
-	buttons = pad
-	
-	if self.playerID ~= nil then
-		Screen.debugPrint(0, 200, "PlayerID = " .. self.playerID, Color.new(255, 255, 255), TOP_SCREEN)
+	if self.exitButton:up(touchx, touchy) then
+		self.network:dispose()
+		System.exit()
+		return
 	end
 	
-	local count = 0
-	local IDMessage = nil
-	local loop = true
-	local heardFromServer = false
-	while loop do
-		count = count + 1
-		UDP.sendTable(self.socket, {self.playerID or 0, padx, pady, buttons, touchx, touchy})
-		IDMessage = UDP.receive(self.socket)
-		
-		if #IDMessage > 0 then
-			heardFromServer = true
+	if not self.mouseMode then
+		if self.backlightOn then 
+			Controls.disableScreen(TOP_SCREEN)
+			Controls.disableScreen(BOTTOM_SCREEN)
+		else
+			Controls.enableScreen(TOP_SCREEN)
+			Controls.enableScreen(BOTTOM_SCREEN)
 		end
-		
-		if count > 10 then 
-			break
-		end
-		if IDMessage ~= nil and #IDMessage > 0 and IDMessage ~= tostring(PORT) then 
-			loop = false 
-			self.playerID = tonumber(IDMessage)
-		end
-	end
-	
-	if heardFromServer == true then
-		self.serverSilentCount = 0
-	else
-		self.serverSilentCount = self.serverSilentCount + 1
-	end
-	
-	if self.serverSilentCount > 5 then
-		self.connected = false
-		
-		Controls.enableScreen(TOP_SCREEN)
-		Controls.enableScreen(BOTTOM_SCREEN)
+		self.backlightOn = not self.backlightOn
 	end
 end
 
